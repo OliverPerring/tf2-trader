@@ -1,17 +1,10 @@
-// Runs in the default ISOLATED world on Steam inventory pages.
-//
-// The main inventory content script (steam-inventory) runs in world:MAIN and
-// cannot fetch external URLs due to Steam's CSP.  It posts window messages
-// here; this bridge forwards them to the background service worker (which is
-// not subject to page CSPs) and returns the result.
-//
-// Handles the same message types as tradeoffer-pricedb-bridge so the inventory
-// content script can reuse fetchPricedbSearch from pricedb-ipc.ts directly.
+
 
 export default defineContentScript({
   matches: [
     "*://steamcommunity.com/id/*/inventory*",
     "*://steamcommunity.com/profiles/*/inventory*",
+    "*://steamcommunity.com/market/listings/440/*",
   ],
   runAt: "document_start",
   main() {
