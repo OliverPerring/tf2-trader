@@ -7,7 +7,7 @@ import { DEFAULT_SETTINGS } from "./settings";
  * Falls back to DEFAULT_SETTINGS on timeout.
  */
 export function getSettingsFromBridge(
-  timeoutMs = 500,
+  timeoutMs = 2500,
 ): Promise<Settings> {
   return new Promise((resolve) => {
     const id = Math.random().toString(36).slice(2);
