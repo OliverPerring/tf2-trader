@@ -1,7 +1,7 @@
 import "@/styles/steam-market-listings.css";
 import { addAttributesToElement } from "@/utils/inventory";
 import { getSettingsFromBridge } from "@/utils/settings-bridge";
-import { fetchPricedbSearch } from "@/utils/pricedb-ipc";
+// import { fetchPricedbSearch } from "@/utils/pricedb-ipc";
 
 export default defineContentScript({
   matches: ["*://steamcommunity.com/market/listings/440/*"],
@@ -9,8 +9,12 @@ export default defineContentScript({
 
   async main() {
     const settings = await getSettingsFromBridge();
+
     if (!settings.sites.steamMarket) return;
-    const autobotEnabled = settings.autobot.enabled && settings.autobot.sites.steamMarket;
+
+    // const autobotEnabled =
+    //   settings.autobot.enabled && settings.autobot.sites.steamMarket;
+
     const getItemIdsFromRow = (rowEl: HTMLElement) => {
       const buyButtonLinkEl = rowEl.querySelector(
         "div.market_listing_buy_button a",
@@ -40,6 +44,7 @@ export default defineContentScript({
       const asset = assets?.[ids.appid]?.[ids.contextid]?.[ids.assetid];
       return asset;
     };
+
     const addAttributesToResults = () => {
       const resultsRows = document.getElementById("searchResultsRows");
 
@@ -153,28 +158,32 @@ export default defineContentScript({
         url: "https://skins.cash/user/ref/76561198253325712",
         icon: "https://skins.cash/favicon.ico",
       },
+      {
+        name: "CTrade.tf",
+        url: "https://ctrade.tf?referred_by=CONFERN",
+        icon: "https://ctrade.tf/icon.ico",
+      },
     ];
 
     const buildReferralBlock = () => {
       const referralContainer = document.createElement("div");
       referralContainer.className = "referral-container";
-      // Apply critical layout styles inline so Steam's CSS cannot override them.
       referralContainer.style.cssText =
         "display:block;overflow:visible;padding:12px 0;margin:8px 0;";
 
       const title = document.createElement("span");
       title.className = "sites_ad_title";
-      title.style.cssText = "display:block;font-size:1.25em;color:#cde46f;margin-bottom:8px;";
+      title.style.cssText =
+        "display:block;font-size:1.25em;color:#cde46f;margin-bottom:8px;";
       title.textContent =
         "You can save 20-35% by buying this item on these trusted marketplaces:";
       referralContainer.appendChild(title);
 
       const adsContainer = document.createElement("div");
       adsContainer.className = "tf2t-site-ads";
-      // Must use setProperty with 'important' — Steam's stylesheet has
-      // display:none !important on .site_ads and .site_ad class names.
       adsContainer.style.setProperty("display", "flex", "important");
-      adsContainer.style.cssText += "flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:25px;margin:10px auto;max-width:100%;overflow:visible;height:auto;";
+      adsContainer.style.cssText +=
+        "flex-wrap:wrap;align-items:flex-start;justify-content:center;gap:25px;margin:10px auto;max-width:100%;overflow:visible;height:auto;";
       adsContainer.style.setProperty("display", "flex", "important");
 
       sites.forEach((site) => {
@@ -190,7 +199,8 @@ export default defineContentScript({
         link.rel = "noopener noreferrer";
         link.className = "tf2t-site-ad-link";
         link.style.setProperty("display", "inline-block", "important");
-        link.style.cssText += "text-decoration:none;color:inherit;white-space:nowrap;font-size:1.1rem;";
+        link.style.cssText +=
+          "text-decoration:none;color:inherit;white-space:nowrap;font-size:1.1rem;";
         link.style.setProperty("display", "inline-block", "important");
 
         const iconWrapper = document.createElement("div");
@@ -200,7 +210,8 @@ export default defineContentScript({
         img.alt = site.name;
         img.src = site.icon;
         img.style.setProperty("display", "block", "important");
-        img.style.cssText += "margin:0 auto 5px;height:50px;max-width:100%;object-fit:contain;";
+        img.style.cssText +=
+          "margin:0 auto 5px;height:50px;max-width:100%;object-fit:contain;";
         img.style.setProperty("display", "block", "important");
         iconWrapper.appendChild(img);
 
@@ -217,73 +228,60 @@ export default defineContentScript({
 
       referralContainer.appendChild(adsContainer);
 
-      if (autobotEnabled) {
-        const autobotRow = document.createElement("div");
-        autobotRow.id = "tf2trader-autobot-row";
-        autobotRow.style.cssText = "margin-top:10px;";
+      // TODO: fix, does not find sku nor copy to clipboard
+      // if (autobotEnabled) {
+      //   const autobotRow = document.createElement("div");
+      //   autobotRow.id = "tf2trader-autobot-row";
+      //   autobotRow.style.cssText = "margin-top:10px;";
 
-        const autobotBtn = document.createElement("button");
-        autobotBtn.id = "tf2trader-autobot-btn";
-        autobotBtn.textContent = "Copy !add";
-        autobotBtn.style.cssText =
-          "background:#1a3a1a;border:1px solid #67d45e;color:#67d45e;" +
-          "padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13px;";
-        autobotBtn.title = "Resolve SKU and copy !add command";
+      //   const autobotBtn = document.createElement("button");
+      //   autobotBtn.id = "tf2trader-autobot-btn";
+      //   autobotBtn.textContent = "Copy !add";
+      //   autobotBtn.style.cssText =
+      //     "background:#1a3a1a;border:1px solid #67d45e;color:#67d45e;" +
+      //     "padding:6px 12px;border-radius:4px;cursor:pointer;font-size:13px;";
+      //   autobotBtn.title = "Resolve SKU and copy !add command";
 
-        // SKU lookup is async — do it once and cache
-        const itemName = fullName;
-        if (itemName) {
-          fetchPricedbSearch(itemName).then((result) => {
-            if (!result?.sku) return;
-            const sku = result.sku;
-            autobotBtn.title = `!add sku=${sku}`;
-            autobotBtn.addEventListener("click", () => {
-              navigator.clipboard.writeText(`!add sku=${sku}`);
-              autobotBtn.textContent = "Copied!";
-              setTimeout(() => { autobotBtn.textContent = "Copy !add"; }, 1500);
-            });
-          });
-        }
+      //   const itemName = fullName;
+      //   if (itemName) {
+      //     fetchPricedbSearch(itemName).then((result) => {
+      //       if (!result?.sku) return;
+      //       const sku = result.sku;
+      //       autobotBtn.title = `!add sku=${sku}`;
+      //       autobotBtn.addEventListener("click", () => {
+      //         navigator.clipboard.writeText(`!add sku=${sku}`);
+      //         autobotBtn.textContent = "Copied!";
+      //         setTimeout(() => {
+      //           autobotBtn.textContent = "Copy !add";
+      //         }, 1500);
+      //       });
+      //     });
+      //   }
 
-        autobotRow.appendChild(autobotBtn);
-        referralContainer.appendChild(autobotRow);
-      }
+      //   autobotRow.appendChild(autobotBtn);
+      //   referralContainer.appendChild(autobotRow);
+      // }
 
       return referralContainer;
     };
 
     const tryInsertReferralBlock = () => {
-      // Already inserted — do nothing.
       if (document.querySelector(".referral-container")) return true;
-
-      // For commodity items we MUST insert before #market_commodity_container
-      // itself (not before a child of it) so our block lands in unconstrained
-      // outer page flow. Use closest() from the order block as a robust fallback
-      // so we never accidentally land inside the container.
-      const orderBlock = document.querySelector<HTMLElement>(
-        ".market_commodity_order_block",
-      );
-      const isCommodityItem = orderBlock !== null;
 
       const block = buildReferralBlock();
 
-      if (isCommodityItem) {
-        // Ideal position: before the price history chart (after the item info section).
-        const priceHistory = document.querySelector<HTMLElement>("#pricehistory");
-        if (priceHistory?.parentNode) {
-          priceHistory.parentNode.insertBefore(block, priceHistory);
-        } else {
-          // Fallback: after the item info div (market_listing_iteminfo or commodity container).
-          const itemInfo =
-            document.querySelector<HTMLElement>("#market_commodity_container") ??
-            orderBlock?.closest<HTMLElement>("[class*='market_listing']") ??
-            orderBlock?.parentElement ??
-            null;
-          if (!itemInfo?.parentNode) return false;
-          itemInfo.parentNode.insertBefore(block, itemInfo.nextSibling);
-        }
+      // For commodity items: insert directly before the first
+      // .market_commodity_orders_block (which contains the Buy button),
+      // inside #market_commodity_order_spread so it sits right above the
+      // buy/sell order tables.
+      const firstOrdersBlock = document.querySelector<HTMLElement>(
+        "#market_commodity_order_spread .market_commodity_orders_block",
+      );
+
+      if (firstOrdersBlock?.parentNode) {
+        firstOrdersBlock.parentNode.insertBefore(block, firstOrdersBlock);
       } else {
-        // For non-commodity items, insert after the large item info panel.
+        // Non-commodity fallback: after the large item info panel.
         const itemInfo =
           document.querySelector<HTMLElement>("#largeiteminfo_warning") ??
           document.querySelector<HTMLElement>("#largeiteminfo");
@@ -291,9 +289,7 @@ export default defineContentScript({
         itemInfo.parentNode.insertBefore(block, itemInfo.nextSibling);
       }
 
-      // Force overflow:visible on ALL ancestors (not just hidden/clip — also
-      // auto/scroll with fixed heights can clamp our block). Apply immediately,
-      // after paint, and at 500ms/2s to beat any delayed Steam JS that reasserts.
+      // Force overflow:visible on all ancestors so the flex row isn't clipped.
       const fixOverflow = () => {
         let el: HTMLElement | null = block.parentElement;
         let depth = 0;
@@ -318,8 +314,6 @@ export default defineContentScript({
     };
 
     if (!tryInsertReferralBlock()) {
-      // Elements not yet in the DOM (Steam loads them dynamically) — retry via
-      // MutationObserver so we don't miss them.
       const observer = new MutationObserver(() => {
         if (tryInsertReferralBlock()) observer.disconnect();
       });

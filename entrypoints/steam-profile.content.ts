@@ -1,9 +1,18 @@
 import { getSettingsFromBridge } from "@/utils/settings-bridge";
 
 export default defineContentScript({
-  matches: [
-    "*://steamcommunity.com/id/*",
-    "*://steamcommunity.com/profiles/*",
+  matches: ["*://steamcommunity.com/id/*", "*://steamcommunity.com/profiles/*"],
+  excludeMatches: [
+    "*://steamcommunity.com/id/*/inventory*",
+    "*://steamcommunity.com/id/*/friends*",
+    "*://steamcommunity.com/id/*/groups*",
+    "*://steamcommunity.com/id/*/games*",
+    "*://steamcommunity.com/id/*/reviews*",
+    "*://steamcommunity.com/profiles/*/inventory*",
+    "*://steamcommunity.com/profiles/*/friends*",
+    "*://steamcommunity.com/profiles/*/groups*",
+    "*://steamcommunity.com/profiles/*/games*",
+    "*://steamcommunity.com/profiles/*/reviews*",
   ],
   world: "MAIN",
   runAt: "document_idle",
@@ -11,7 +20,6 @@ export default defineContentScript({
     const settings = await getSettingsFromBridge();
     if (!settings.sites.steamProfile) return;
 
-    // Only run on the profile root, not on sub-pages like /inventory/, /tradeoffers/, etc.
     const pathParts = window.location.pathname.split("/").filter(Boolean);
     if (pathParts.length > 2) return;
 
@@ -19,7 +27,7 @@ export default defineContentScript({
     if (!steam64) return;
 
     const ids = buildIds(steam64);
-    addSteamIdButton(ids);
+    addSteamIdButton(ids, steam64);
     addSidebarLinks(steam64);
   },
 });
@@ -76,7 +84,7 @@ function buildIds(steam64: string): SteamIdEntry[] {
 // Header button
 // ---------------------------------------------------------------------------
 
-function addSteamIdButton(ids: SteamIdEntry[]) {
+function addSteamIdButton(ids: SteamIdEntry[], steam64: string) {
   if (document.getElementById("tf2trader_steamid_btn")) return;
 
   const actionsEl = document.querySelector<HTMLElement>(
@@ -94,7 +102,7 @@ function addSteamIdButton(ids: SteamIdEntry[]) {
   btn.appendChild(btnSpan);
   btn.addEventListener("click", (e) => {
     e.preventDefault();
-    openModal(ids);
+    openModal(ids, steam64);
   });
   actionsEl.appendChild(btn);
 }
@@ -103,7 +111,7 @@ function addSteamIdButton(ids: SteamIdEntry[]) {
 // Modal
 // ---------------------------------------------------------------------------
 
-function openModal(ids: SteamIdEntry[]) {
+function openModal(ids: SteamIdEntry[], steam64: string) {
   document.getElementById("tf2trader_modal_overlay")?.remove();
 
   const overlay = document.createElement("div");
@@ -254,14 +262,19 @@ function addSidebarLinks(steam64: string) {
   if (!linksContainer) return;
 
   const SITES: { label: string; url: string }[] = [
-    { label: "backpack.tf", url: `https://backpack.tf/profiles/${steam64}` },
-    { label: "rep.tf", url: `https://rep.tf/${steam64}` },
-    { label: "SteamRep", url: `https://steamrep.com/profiles/${steam64}` },
+    { label: "backpack.tf", url: `https://backpack.tf/u/${steam64}` },
     {
-      label: "marketplace.tf",
-      url: `https://marketplace.tf/seller/${steam64}`,
+      label: "next.backpack.tf",
+      url: `https://next.backpack.tf/profiles/${steam64}/user`,
     },
+    { label: "rep.tf", url: `https://rep.tf/${steam64}` },
+    { label: "steamhistory", url: `https://steamhistory.net/id/${steam64}` },
     { label: "posts.tf", url: `https://posts.tf/users/${steam64}` },
+    {
+      label: "stntrading.eu",
+      url: `https://stntrading.eu/profiles/${steam64}`,
+    },
+    { label: "mannco.store", url: `https://mannco.store/store/${steam64}` },
   ];
 
   const section = document.createElement("div");
